@@ -1,0 +1,60 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+
+      - name: Get the version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+      - name: Build binaries
+        run: |
+          mkdir -p dist
+          # Linux (amd64)
+          GOOS=linux GOARCH=amd64 go build -o "dist/sslcheck_${VERSION}_linux_amd64" -ldflags="-s -w" .
+          # Linux (arm64)
+          GOOS=linux GOARCH=arm64 go build -o "dist/sslcheck_${VERSION}_linux_arm64" -ldflags="-s -w" .
+          # macOS (amd64)
+          GOOS=darwin GOARCH=amd64 go build -o "dist/sslcheck_${VERSION}_darwin_amd64" -ldflags="-s -w" .
+          # macOS (arm64)
+          GOOS=darwin GOARCH=arm64 go build -o "dist/sslcheck_${VERSION}_darwin_arm64" -ldflags="-s -w" .
+          # Windows (amd64)
+          GOOS=windows GOARCH=amd64 go build -o "dist/sslcheck_${VERSION}_windows_amd64.exe" -ldflags="-s -w" .
+
+      - name: Create zip archives
+        run: |
+          cd dist
+          for file in *; do
+            if [ -f "$file" ]; then
+              zip "${file}.zip" "$file"
+              echo "Created ${file}.zip"
+            fi
+          done
+          cd ..
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release v${{ env.VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            dist/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
