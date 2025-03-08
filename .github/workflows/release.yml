@@ -35,6 +35,7 @@ jobs:
           GOOS=darwin GOARCH=arm64 go build -o "dist/sslcheck_${VERSION}_darwin_arm64" -ldflags="-s -w" .
           # Windows (amd64)
           GOOS=windows GOARCH=amd64 go build -o "dist/sslcheck_${VERSION}_windows_amd64.exe" -ldflags="-s -w" .
+        shell: bash
 
       - name: Create zip archives
         run: |
@@ -46,6 +47,7 @@ jobs:
             fi
           done
           cd ..
+        shell: bash
 
       - name: Create Release
         id: create_release
